@@ -266,7 +266,6 @@ export default function ServicesPage() {
       <section className="mx-auto max-w-6xl px-4 py-10">
         <div className="space-y-10">
           {SERVICES.map((s) => {
-            // Activo SOLO si es móvil y la tarjeta coincide
             const isActive = isMobile && activeKey === s.key;
             return (
               <section
@@ -314,8 +313,9 @@ export default function ServicesPage() {
                   >
                     Quiero este servicio
                   </Link>
+                  {/* 🔵 Ruta limpia por categoría (compatibles con main.jsx que te pasé): */}
                   <Link
-                    to={`/projects?service=${s.key}`}
+                    to={`/projects/cat/${s.key}`}
                     className="px-4 py-2 rounded-md border border-white/15 text-white/90 hover:bg-white/10 transition no-underline"
                   >
                     Ver proyectos
