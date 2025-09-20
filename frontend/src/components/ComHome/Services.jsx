@@ -1,8 +1,8 @@
 // src/components/ComHome/Services.jsx
-// Cards con efecto neón: en móvil solo al tocar; en desktop al hover.
-// Carrusel móvil (scroll-snap). Fondo con imagen + velo oscuro.
+// Cards con efecto neón: en móvil se resalta la tarjeta visible (scroll-snap).
+// En desktop: hover-only. Fondo con imagen + velo oscuro.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import bgImg from "../../assets/imgHome/heroFondo.png";
 
 const items = [
@@ -54,9 +54,62 @@ function Icon({ name, className = "w-10 h-10" }) {
 }
 
 export default function Services() {
-  // Solo para móvil: card activa por toque
+  // Móvil: card activa automáticamente (visible)
+  const railRef = useRef(null);
   const [activeKey, setActiveKey] = useState(null);
-  const toggleActive = (key) => setActiveKey((prev) => (prev === key ? null : key));
+
+  // Detecta la tarjeta más centrada en pantalla (móvil)
+  useEffect(() => {
+    const isMobile = window.matchMedia("(max-width: 767px)").matches;
+    if (!isMobile) return;
+
+    const rail = railRef.current;
+    if (!rail) return;
+
+    const getCards = () => Array.from(rail.querySelectorAll("[data-card]"));
+
+    const pickCentered = () => {
+      const cards = getCards();
+      if (!cards.length) return;
+      const centerX = window.innerWidth / 2;
+      let best = null;
+      let bestDist = Infinity;
+
+      for (const el of cards) {
+        const r = el.getBoundingClientRect();
+        const mid = r.left + r.width / 2;
+        const dist = Math.abs(mid - centerX);
+        if (dist < bestDist) {
+          bestDist = dist;
+          best = el;
+        }
+      }
+      if (best) {
+        const key = best.getAttribute("data-key");
+        setActiveKey((prev) => (prev === key ? prev : key));
+      }
+    };
+
+    // rAF-throttle para scroll fluido
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(pickCentered);
+    };
+
+    // Inicial + eventos
+    pickCentered();
+    rail.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    window.addEventListener("orientationchange", onScroll);
+
+    return () => {
+      cancelAnimationFrame(raf);
+      rail.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("orientationchange", onScroll);
+    };
+  }, []);
 
   return (
     <section id="services" className="relative py-20 overflow-hidden" aria-labelledby="services-title">
@@ -84,12 +137,15 @@ export default function Services() {
           opacity:0; transition:opacity .25s ease, filter .25s ease;
           pointer-events:none; filter:blur(.25px);
         }
-        /* Hover (desktop) */
-        .ck-neon:hover::after{ opacity:1; animation: ck-neon-sheen 1100ms ease-out forwards; filter:blur(.15px); }
-        .ck-neon:hover{ box-shadow:0 0 10px rgba(76,201,255,.45),0 0 22px rgba(46,144,250,.35),0 0 44px rgba(46,144,250,.25); }
 
-        /* Activo por toque (móvil) */
-        .is-active::after{ opacity:1; }
+        /* Hover (solo en dispositivos con hover real) */
+        @media (hover:hover) and (pointer:fine) {
+          .ck-neon:hover::after{ opacity:1; animation: ck-neon-sheen 1100ms ease-out forwards; filter:blur(.15px); }
+          .ck-neon:hover{ box-shadow:0 0 10px rgba(76,201,255,.45),0 0 22px rgba(46,144,250,.35),0 0 44px rgba(46,144,250,.25); }
+        }
+
+        /* Activo (usado en móvil por scroll-snap) */
+        .is-active::after{ opacity:1; animation: ck-neon-sheen 1100ms ease-out forwards; filter:blur(.15px); }
         .is-active{ box-shadow:0 0 10px rgba(76,201,255,.45),0 0 22px rgba(46,144,250,.35),0 0 44px rgba(46,144,250,.25); }
 
         /* Carrusel móvil */
@@ -115,17 +171,20 @@ export default function Services() {
           Soluciones tecnológicas eficientes y escalables, creadas para generar impacto real en tu operación.
         </p>
 
-        {/* MÓVIL: carrusel (neón solo al tocar) */}
+        {/* MÓVIL: carrusel (auto-activo por visibilidad; SIN tap para activar) */}
         <div className="mt-8 md:hidden relative">
-          <div className="ck-rail -mx-4 px-4 flex gap-4 overflow-x-auto scroll-px-4" role="region" aria-label="Carrusel de servicios">
+          <div
+            ref={railRef}
+            className="ck-rail -mx-4 px-4 flex gap-4 overflow-x-auto scroll-px-4"
+            role="region"
+            aria-label="Carrusel de servicios"
+          >
             {items.map((s, i) => (
               <article
                 key={s.key}
                 data-card
                 data-key={s.key}
-                onTouchStart={() => toggleActive(s.key)}
-                onClick={() => toggleActive(s.key)}
-                role="button"
+                role="group"
                 tabIndex={0}
                 className={[
                   "group ck-neon overflow-hidden rounded-2xl",

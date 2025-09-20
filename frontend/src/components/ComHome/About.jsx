@@ -1,17 +1,21 @@
 // src/components/ComHome/About.jsx
-// About con look & feel CK: glass cards, neón al hover (desktop)
-// y neón automático al scrollear en móvil. Incluye JSON-LD (SEO).
+// About con look & feel CK: glass cards, neón al hover (desktop).
+// En móvil: SIN auto-resaltado al scroll; solo al tocar (tap) y se limpia al scrollear.
+// Incluye JSON-LD (SEO).
 
 import { useEffect } from "react";
 
 const BASE = "https://www.ck-systems.example"; // <-- cámbialo por tu dominio real
 
 export default function About() {
-  // Estilos locales (neón + activo sin hover)
+  // Estilos locales (neón + activo)
   useEffect(() => {
     const style = document.createElement("style");
     style.textContent = `
-      @keyframes ck-neon-sheen { 0%{background-position:0% 50%} 100%{background-position:100% 50%} }
+      @keyframes ck-neon-sheen {
+        0% { background-position: 0% 50% }
+        100% { background-position: 100% 50% }
+      }
 
       .ck-neon { position: relative; }
       .ck-neon::after{
@@ -22,11 +26,14 @@ export default function About() {
         -webkit-mask-composite:xor; mask-composite:exclude;
         opacity:0; transition:opacity .25s ease, filter .25s ease; pointer-events:none; filter:blur(.25px);
       }
-      /* Hover (desktop) */
-      .ck-neon:hover::after{ opacity:1; animation: ck-neon-sheen 1100ms ease-out forwards; filter:blur(.15px); }
-      .ck-neon:hover{ box-shadow:0 0 10px rgba(76,201,255,.45),0 0 22px rgba(46,144,250,.35),0 0 44px rgba(46,144,250,.25); }
 
-      /* Activación por scroll (agregada por JS solo en móvil) */
+      /* Hover solo en dispositivos con hover real (no móviles) */
+      @media (hover:hover) and (pointer:fine) {
+        .ck-neon:hover::after{ opacity:1; animation: ck-neon-sheen 1100ms ease-out forwards; filter:blur(.15px); }
+        .ck-neon:hover{ box-shadow:0 0 10px rgba(76,201,255,.45),0 0 22px rgba(46,144,250,.35),0 0 44px rgba(46,144,250,.25); }
+      }
+
+      /* Estado activo (se coloca por JS al tocar en móvil) */
       .ck-neon.is-active::after{ opacity:1; animation: ck-neon-sheen 1100ms ease-out forwards; filter:blur(.15px); }
       .ck-neon.is-active{ box-shadow:0 0 10px rgba(76,201,255,.45),0 0 22px rgba(46,144,250,.35),0 0 44px rgba(46,144,250,.25); }
     `;
@@ -60,7 +67,7 @@ export default function About() {
     el.text = JSON.stringify(data);
   }, []);
 
-  // Neón automático en móvil al hacer scroll (solo ≤767px)
+  // MÓVIL: sin auto-resaltado; solo al tocar, y se limpia al scrollear
   useEffect(() => {
     const isMobile = window.matchMedia("(max-width: 767px)").matches;
     if (!isMobile) return;
@@ -68,22 +75,39 @@ export default function About() {
     const cards = Array.from(document.querySelectorAll("[data-about-card]"));
     if (!cards.length) return;
 
-    // Marca una sola card como activa
-    const setActive = (el) => {
-      cards.forEach((c) => c.classList.toggle("is-active", c === el));
-    };
-    setActive(cards[0]); // al cargar, resalta la primera
+    const clearActive = () => cards.forEach((c) => c.classList.remove("is-active"));
 
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting && e.intersectionRatio >= 0.6) setActive(e.target);
-        });
-      },
-      { threshold: [0.6] }
-    );
-    cards.forEach((c) => io.observe(c));
-    return () => io.disconnect();
+    // Tap/click: activa sólo la tarjeta pulsada
+    const onTap = (ev) => {
+      // Evitar dobles activaciones en algunos navegadores móviles
+      ev.stopPropagation?.();
+      clearActive();
+      ev.currentTarget.classList.add("is-active");
+    };
+
+    // Al scrollear: limpiar selección (pequeño debounce)
+    let t = null;
+    const onScroll = () => {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => {
+        clearActive();
+      }, 80);
+    };
+
+    cards.forEach((c) => {
+      c.addEventListener("click", onTap, { passive: true });
+      c.addEventListener("touchend", onTap, { passive: true });
+    });
+    window.addEventListener("scroll", onScroll, { passive: true });
+
+    return () => {
+      cards.forEach((c) => {
+        c.removeEventListener("click", onTap);
+        c.removeEventListener("touchend", onTap);
+      });
+      window.removeEventListener("scroll", onScroll);
+      if (t) clearTimeout(t);
+    };
   }, []);
 
   return (
@@ -103,8 +127,9 @@ export default function About() {
         {/* Intro */}
         <article
           data-about-card
-          className="mt-6 ck-neon rounded-2xl border border-transparent bg-white/5 backdrop-blur p-6 md:p-8"
+          className="mt-6 ck-neon rounded-2xl border border-transparent bg-white/5 backdrop-blur p-6 md:p-8 cursor-pointer md:cursor-default touch-manipulation"
           aria-label="Introducción CK Systems"
+          tabIndex={0}
         >
           <p className="text-white/85">
             En <span className="font-semibold text-white">CK Systems</span> impulsamos el futuro digital de empresas y personas.
@@ -122,8 +147,9 @@ export default function About() {
           {/* Misión */}
           <article
             data-about-card
-            className="ck-neon rounded-2xl border border-transparent bg-white/5 backdrop-blur p-6 md:p-8 transition hover:-translate-y-0.5"
+            className="ck-neon rounded-2xl border border-transparent bg-white/5 backdrop-blur p-6 md:p-8 transition hover:-translate-y-0.5 cursor-pointer md:cursor-default touch-manipulation"
             aria-labelledby="about-mission-title"
+            tabIndex={0}
           >
             <div className="flex items-start gap-3">
               <svg
@@ -152,8 +178,9 @@ export default function About() {
           {/* Visión */}
           <article
             data-about-card
-            className="ck-neon rounded-2xl border border-transparent bg-white/5 backdrop-blur p-6 md:p-8 transition hover:-translate-y-0.5"
+            className="ck-neon rounded-2xl border border-transparent bg-white/5 backdrop-blur p-6 md:p-8 transition hover:-translate-y-0.5 cursor-pointer md:cursor-default touch-manipulation"
             aria-labelledby="about-vision-title"
+            tabIndex={0}
           >
             <div className="flex items-start gap-3">
               <svg

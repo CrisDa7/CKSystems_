@@ -1,7 +1,7 @@
 // src/components/ComHome/Team.jsx
-// Carrusel de equipo (2 miembros) sin loop: autoplay hacia la derecha hasta el final,
-// flechas con estados (deshabilitadas en extremos), dots, swipe y SEO JSON-LD.
-// Subrayado azul en el título + halo sutil en foto y texto del miembro activo.
+// Carrusel de equipo con scroll-snap (móvil: arrastrable con el dedo),
+// autoplay hacia la derecha sin loop, flechas con estados, dots, swipe/drag
+// natural y SEO JSON-LD. Subrayado azul + halos sutiles en el slide activo.
 
 import { useEffect, useRef, useState } from "react";
 import cristianImg from "../../assets/imgHome/cristian.png";
@@ -29,24 +29,93 @@ const TEAM = [
 ];
 
 export default function Team() {
+  const railRef = useRef(null);
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
-  const startXRef = useRef(0);
-  const deltaXRef = useRef(0);
 
   const atStart = index === 0;
   const atEnd = index === TEAM.length - 1;
 
-  // Autoplay (3s) hacia la derecha, sin loop (se detiene en el último)
+  // ====== Helpers ======
+  const scrollToIndex = (i, behavior = "smooth") => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const clamped = Math.max(0, Math.min(TEAM.length - 1, i));
+    const left = clamped * rail.clientWidth; // cada slide ocupa 100% del rail
+    rail.scrollTo({ left, behavior });
+  };
+
+  const next = () => !atEnd && scrollToIndex(index + 1);
+  const prev = () => !atStart && scrollToIndex(index - 1);
+  const goTo = (i) => scrollToIndex(i);
+
+  // ====== Sincronizar index con el scroll (rAF-throttle) ======
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+
+    let raf = 0;
+    const onScroll = () => {
+      cancelAnimationFrame(raf);
+      raf = requestAnimationFrame(() => {
+        const i = Math.round(rail.scrollLeft / rail.clientWidth);
+        setIndex((prev) => (prev === i ? prev : i));
+      });
+    };
+
+    rail.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll, { passive: true });
+    window.addEventListener("orientationchange", onScroll);
+
+    // Ajuste inicial
+    onScroll();
+
+    return () => {
+      cancelAnimationFrame(raf);
+      rail.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      window.removeEventListener("orientationchange", onScroll);
+    };
+  }, []);
+
+  // ====== Autoplay (cada 3s) hacia la derecha, sin loop ======
   useEffect(() => {
     if (paused || atEnd) return;
     const id = setInterval(() => {
-      setIndex((i) => Math.min(TEAM.length - 1, i + 1));
+      next();
     }, 3000);
     return () => clearInterval(id);
-  }, [paused, atEnd]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paused, atEnd, index]);
 
-  // SEO: JSON-LD empleados
+  // Pausa cuando el usuario interactúa (hover/focus/drag)
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+
+    const pause = () => setPaused(true);
+    const resume = () => setPaused(false);
+
+    rail.addEventListener("pointerdown", pause);
+    rail.addEventListener("pointerup", resume);
+    rail.addEventListener("pointercancel", resume);
+    rail.addEventListener("mouseenter", pause);
+    rail.addEventListener("mouseleave", resume);
+    rail.addEventListener("focusin", pause);
+    rail.addEventListener("focusout", resume);
+
+    return () => {
+      rail.removeEventListener("pointerdown", pause);
+      rail.removeEventListener("pointerup", resume);
+      rail.removeEventListener("pointercancel", resume);
+      rail.removeEventListener("mouseenter", pause);
+      rail.removeEventListener("mouseleave", resume);
+      rail.removeEventListener("focusin", pause);
+      rail.removeEventListener("focusout", resume);
+    };
+  }, []);
+
+  // ====== SEO: JSON-LD empleados ======
   useEffect(() => {
     const elId = "team-jsonld";
     const abs = (src) =>
@@ -76,29 +145,6 @@ export default function Team() {
     el.text = JSON.stringify(data);
   }, []);
 
-  // Navegación manual (sin superar extremos)
-  const goTo = (i) => setIndex(() => Math.max(0, Math.min(TEAM.length - 1, i)));
-  const next = () => !atEnd && setIndex((i) => i + 1);
-  const prev = () => !atStart && setIndex((i) => i - 1);
-
-  // Swipe móvil (respeta extremos)
-  const onTouchStart = (e) => {
-    startXRef.current = e.touches[0].clientX;
-    deltaXRef.current = 0;
-    setPaused(true);
-  };
-  const onTouchMove = (e) => {
-    deltaXRef.current = e.touches[0].clientX - startXRef.current;
-  };
-  const onTouchEnd = () => {
-    const d = deltaXRef.current;
-    if (Math.abs(d) > 50) {
-      if (d < 0 && !atEnd) next();
-      if (d > 0 && !atStart) prev();
-    }
-    setPaused(false);
-  };
-
   return (
     <section
       id="team"
@@ -124,30 +170,27 @@ export default function Team() {
         </p>
       </div>
 
-      {/* Carrusel */}
-      <div
-        className="relative w-full overflow-hidden mt-8"
-        onMouseEnter={() => setPaused(true)}
-        onMouseLeave={() => setPaused(false)}
-        onFocusCapture={() => setPaused(true)}
-        onBlurCapture={() => setPaused(false)}
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-        aria-roledescription="carousel"
-        aria-label="Nuestro equipo"
-      >
-        {/* Pista */}
+      {/* Carrusel con scroll-snap (arrastrable en móvil) */}
+      <div className="relative w-full mt-8" aria-roledescription="carousel" aria-label="Nuestro equipo">
+        {/* Rail */}
         <div
-          className="flex transition-transform duration-700 ease-out"
-          style={{ transform: `translateX(-${index * 100}%)` }}
-          role="group"
-          aria-live="polite"
+          ref={railRef}
+          className="
+            relative w-full overflow-x-auto overflow-y-visible
+            flex snap-x snap-mandatory
+            scroll-smooth scroll-px-4
+            -mx-4 px-4
+            [-ms-overflow-style:none] [scrollbar-width:none]
+          "
+          style={{ scrollbarWidth: "none" }}
         >
+          {/* Ocultar scrollbar en WebKit */}
+          <style>{`.snap-x::-webkit-scrollbar{display:none}`}</style>
+
           {TEAM.map((m, i) => (
             <article
               key={m.key}
-              className="w-full shrink-0"
+              className="w-full shrink-0 snap-center"
               aria-roledescription="slide"
               aria-label={`${m.name} — ${i + 1} de ${TEAM.length}`}
             >

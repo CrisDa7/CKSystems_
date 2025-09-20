@@ -136,7 +136,7 @@ export default function ServicesPage() {
       .ck-neon:hover::after{ opacity:1; animation: ck-neon-sheen 1100ms ease-out forwards; filter:blur(.15px); }
       .ck-neon:hover{ box-shadow:0 0 10px rgba(76,201,255,.45),0 0 22px rgba(46,144,250,.35),0 0 44px rgba(46,144,250,.25); }
 
-      /* Activación por scroll (se aplicará solo si el componente agrega la clase) */
+      /* Estado activo (se aplica por JS solo si el usuario toca en móvil) */
       .ck-neon.is-active::after{ opacity:1; animation: ck-neon-sheen 1100ms ease-out forwards; filter:blur(.15px); }
       .ck-neon.is-active{ box-shadow:0 0 10px rgba(76,201,255,.45),0 0 22px rgba(46,144,250,.35),0 0 44px rgba(46,144,250,.25); }
     `;
@@ -176,32 +176,21 @@ export default function ServicesPage() {
     setTimeout(() => setFlashKey(id), delay);
   };
 
-  // --- IntersectionObserver SOLO en móvil ---
+  // ====== MÓVIL: sólo resaltar por toque; limpiar al scrollear ======
   useEffect(() => {
-    if (!isMobile) return; // nada en escritorio
+    if (!isMobile) return;
 
-    const sections = Array.from(document.querySelectorAll("[data-service-card]"));
-    if (!sections.length) return;
+    let t = null;
+    const onScroll = () => {
+      if (t) clearTimeout(t);
+      t = setTimeout(() => setActiveKey(null), 80); // limpia tras scroll
+    };
 
-    // enfoca la primera
-    if (!activeKey) setActiveKey(sections[0].id);
-
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          const id = e.target.id;
-          if (!id) return;
-          if (e.isIntersecting && e.intersectionRatio >= 0.6) {
-            setActiveKey(id);
-          }
-        });
-      },
-      { root: null, threshold: [0.6] }
-    );
-
-    sections.forEach((sec) => io.observe(sec));
-    return () => io.disconnect();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      if (t) clearTimeout(t);
+    };
   }, [isMobile]);
 
   // JSON-LD OfferCatalog (SEO)
@@ -225,6 +214,13 @@ export default function ServicesPage() {
   // WhatsApp CTA final (botón azul)
   const waMsg = encodeURIComponent("Hola, me gustaría hablar sobre sus servicios de CK Systems.");
   const waHref = `https://wa.me/593994494004?text=${waMsg}`;
+
+  // Handler de tap/click en móvil
+  const handleTap = (e, key) => {
+    e.stopPropagation?.();
+    if (!isMobile) return;
+    setActiveKey((prev) => (prev === key ? null : key));
+  };
 
   return (
     <>
@@ -279,10 +275,12 @@ export default function ServicesPage() {
                   ${isActive ? "is-active" : ""}
                 `}
                 onAnimationEnd={() => setFlashKey(null)}
+                onClick={(e) => handleTap(e, s.key)}
+                onTouchEnd={(e) => handleTap(e, s.key)}
                 aria-labelledby={`${s.key}-title`}
               >
                 {/* Header */}
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-4 cursor-pointer md:cursor-default touch-manipulation">
                   <div
                     className="h-16 w-16 rounded-full bg-gradient-to-br from-brand-blue/35 to-brand-blue/15 text-brand-blue ring-1 ring-brand-blue/40 grid place-items-center ck-icon-pulse"
                     aria-hidden="true"
@@ -313,10 +311,10 @@ export default function ServicesPage() {
                   >
                     Quiero este servicio
                   </Link>
-                  {/* 🔵 Ruta limpia por categoría (compatibles con main.jsx que te pasé): */}
+                  {/* 🔵 Ruta limpia por categoría */}
                   <Link
                     to={`/projects/cat/${s.key}`}
-                    className="px-4 py-2 rounded-md border border-white/15 text-white/90 hover:bg-white/10 transition no-underline"
+                    className="px-4 py-2 rounded-md border border-white/15 text-white/90 hover:bg:white/10 transition no-underline hover:bg-white/10"
                   >
                     Ver proyectos
                   </Link>

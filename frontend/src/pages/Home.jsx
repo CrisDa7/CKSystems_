@@ -28,8 +28,9 @@ export default function Home() {
 
       {/* Secciones con IDs */}
       <section id="hero">
-        {/* Ancla para el robot (ideal colocarlo dentro del <Hero/> en la palabra “Systems”) */}
-        <span id="robot-anchor" style={{ position: "absolute", inset: 0, width: 0, height: 0 }} />
+        {/* Ideal: coloca este anchor DENTRO del <h1> del hero, por ejemplo:
+             <h1>Bienvenido a CK <span id="robot-anchor">Systems</span></h1>
+           Si no, el componente usará el <h1> como fallback. */}
         <Hero />
       </section>
       <section id="about">
@@ -57,7 +58,7 @@ export default function Home() {
           contact: "right",
         }}
         offsetTopVH={{ hero: 30, default: 18, mobile: 86 }} // desktop
-        mobileTopVH={12}                                   // 👈 móvil: “inicio” de cada sección
+        mobileTopVH={12}                                   // móvil: inicio de cada sección
         heroOffsetForward={12}
         heroOffsetForwardMobile={8}
       />

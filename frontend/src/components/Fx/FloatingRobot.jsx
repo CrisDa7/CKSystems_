@@ -15,13 +15,12 @@ import robotCelSrc from "../../assets/imgHome/robotcel.png";
  * Robot flotante con halo neón.
  * - Lado fijo por sección con sideOverrides.
  * - Activa sección por "centro de pantalla".
+ * - En móvil: inicia centrado sobre el título del hero, luego se ubica al inicio de cada sección.
  * - En "contact" hace remolino y cambia 5s a robotcel.png.
- * - En móvil se ubica cerca del INICIO de cada sección (top fijo en vh).
  */
 export default function FloatingRobot({
   sections = ["hero", "about", "services", "team", "contact"],
   startSide = "right",
-  /** Forzar lado por sección: { [id]: 'left' | 'right' } */
   sideOverrides = {
     hero: "right",
     about: "left",
@@ -29,15 +28,17 @@ export default function FloatingRobot({
     team: "left",
     contact: "right",
   },
-  /** Altura (en % del viewport) por sección en desktop */
+  // Alturas (desktop por sección) y móvil (inicio de cada sección)
   offsetTopVH = { hero: 30, default: 18, mobile: 86 },
-  /** Altura en móvil (porcentaje del viewport, recomendado 8–14) */
-  mobileTopVH = 12, // 👈 NUEVO: “inicio” de cada sección en móvil
+  mobileTopVH = 12,
+
   marginPx = 28,
   marginPxMobile = 14,
-  /** Qué tan cerca del ancla en HERO (px) */
+
+  // Fino contra el anchor en hero (desktop/móvil)
   heroOffsetForward = 12,
   heroOffsetForwardMobile = 8,
+
   widthPx = { base: 220, md: 300, xl: 340, sm: 150 },
 }) {
   const [activeIdx, setActiveIdx] = useState(0);
@@ -82,6 +83,17 @@ export default function FloatingRobot({
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  // ===== Helper: rect del anchor del HERO (preferimos #robot-anchor; fallback <h1>) =====
+  const getHeroAnchorRect = () => {
+    const hero = document.getElementById("hero");
+    if (!hero) return null;
+    const el =
+      document.getElementById("robot-anchor") ||
+      hero.querySelector("[data-robot-anchor]") ||
+      hero.querySelector("h1");
+    return el ? el.getBoundingClientRect() : null;
+  };
+
   // ===== Detectar sección activa por CENTRO de viewport =====
   useEffect(() => {
     const els = sections.map((id) => document.getElementById(id)).filter(Boolean);
@@ -117,7 +129,7 @@ export default function FloatingRobot({
     };
   }, [sections]);
 
-  // ===== Lado por sección (override > alternancia) =====
+  // ===== Lado por sección =====
   const sideFor = (id, idx) => {
     if (sideOverrides && Object.prototype.hasOwnProperty.call(sideOverrides, id)) {
       return sideOverrides[id];
@@ -141,14 +153,12 @@ export default function FloatingRobot({
   const computeTargetX = () => {
     const margin = isSmall ? marginPxMobile : marginPx;
 
-    // HERO: si hay ancla, úsala para quedar cerca de “Systems”
-    if (currentId === "hero") {
-      const el = document.getElementById("robot-anchor");
-      if (el) {
-        const r = el.getBoundingClientRect();
-        const anchorRight = r.left + r.width;
-        const forward = isSmall ? heroOffsetForwardMobile : heroOffsetForward;
-        const xHero = anchorRight + forward;
+    // HERO: alineado al anchor; en móvil ya partimos centrados, aquí mantenemos lado forzado
+    if (!isSmall && currentId === "hero") {
+      const r = getHeroAnchorRect();
+      if (r) {
+        const forward = heroOffsetForward;
+        const xHero = r.left + r.width + forward;
         const minX = margin;
         const maxX = vw - margin - robotW;
         return Math.min(Math.max(minX, xHero), maxX);
@@ -158,27 +168,39 @@ export default function FloatingRobot({
     return side === "right" ? vw - margin - robotW : margin;
   };
 
-  // X inicial (aparece ya en su sitio en HERO)
+  // X inicial
   const computeInitialX = () => {
     const margin = isSmall ? marginPxMobile : marginPx;
-    const el = document.getElementById("robot-anchor");
-    if (el) {
-      const r = el.getBoundingClientRect();
-      const anchorRight = r.left + r.width;
-      const forward = isSmall ? heroOffsetForwardMobile : heroOffsetForward;
-      const xHero = anchorRight + forward;
+
+    // En móvil + HERO: centrar sobre el título
+    if (isSmall) {
+      const r = getHeroAnchorRect();
+      const centerX = r ? r.left + r.width / 2 : vw / 2;
+      const x = centerX - robotW / 2;
       const minX = margin;
       const maxX = vw - margin - robotW;
-      return Math.min(Math.max(minX, xHero), maxX);
+      return Math.min(Math.max(minX, x), maxX);
     }
-    // fallback por lado
+
+    // Desktop + HERO: junto al anchor a la derecha
+    if (currentId === "hero") {
+      const r = getHeroAnchorRect();
+      if (r) {
+        const xHero = r.left + r.width + heroOffsetForward;
+        const minX = margin;
+        const maxX = vw - margin - robotW;
+        return Math.min(Math.max(minX, xHero), maxX);
+      }
+    }
+
+    // Fallback por lado
     return sideOverrides?.hero === "right" ? vw - margin - robotW : margin;
   };
 
   // TOP objetivo
   const computeTargetTop = () => {
     if (isSmall) {
-      // En móvil nos ubicamos cerca del INICIO de cada sección
+      // En móvil: al inicio de cada sección
       const topPercent = mobileTopVH ?? offsetTopVH.mobile ?? 12;
       return (topPercent / 100) * vh;
     }
@@ -186,10 +208,25 @@ export default function FloatingRobot({
     return (vhVal / 100) * vh;
   };
 
+  // TOP inicial
+  const computeInitialTop = () => {
+    if (isSmall) {
+      // Colocar por ENCIMA del título del hero en móvil
+      const r = getHeroAnchorRect();
+      if (r) {
+        // un poco arriba del texto; ajusta el factor si quieres
+        return Math.max(8, r.top - robotW * 0.7);
+      }
+      return (mobileTopVH / 100) * vh;
+    }
+    return computeTargetTop();
+  };
+
   // ===== Motion values =====
-  const x = useMotionValue(computeInitialX()); // arranca pegado al anchor
+  const x = useMotionValue(computeInitialX());
   const xSmooth = useSpring(x, { stiffness: 50, damping: 24, mass: 0.8 });
-  const topPx = useMotionValue(computeTargetTop());
+
+  const topPx = useMotionValue(computeInitialTop());
   const topSmooth = useSpring(topPx, { stiffness: 44, damping: 22, mass: 0.9 });
 
   const { scrollY } = useScroll();
@@ -200,7 +237,7 @@ export default function FloatingRobot({
   );
   const y = useSpring(yRaw, { stiffness: 30, damping: 18, mass: 0.9 });
 
-  // Tilt por velocidad (más suave en móvil)
+  // Tilt por velocidad
   const vX = useVelocity(xSmooth);
   const tilt = useTransform(vX, [-1200, 0, 1200], isSmall ? [-2.5, 0, 2.5] : [-5, 0, 5]);
 
@@ -211,36 +248,48 @@ export default function FloatingRobot({
   const spinMV = useMotionValue(0);
   const spinSmooth = useSpring(spinMV, { stiffness: 120, damping: 22, mass: 0.8 });
 
+  // Evitar que al primer render se mueva de la posición inicial móvil del hero
+  const firstRunRef = useRef(true);
+
   // Mover a nuevos targets cuando cambia la sección / viewport
   useEffect(() => {
-    const controls = [
-      animate(x, computeTargetX(), {
-        type: "spring",
-        stiffness: 50,
-        damping: 24,
-        mass: 0.8,
-        restDelta: 0.2,
-        delay: 0.02,
-      }),
-      animate(topPx, computeTargetTop(), {
-        type: "spring",
-        stiffness: 44,
-        damping: 22,
-        mass: 0.9,
-        restDelta: 0.2,
-      }),
-    ];
-    return () => controls.forEach((c) => c.stop && c.stop());
+    const anims = [];
+
+    // En el PRIMER render, dejamos la posición inicial (móvil/hero) sin animar
+    if (firstRunRef.current) {
+      firstRunRef.current = false;
+    } else {
+      anims.push(
+        animate(x, computeTargetX(), {
+          type: "spring",
+          stiffness: 50,
+          damping: 24,
+          mass: 0.8,
+          restDelta: 0.2,
+          delay: 0.02,
+        })
+      );
+      anims.push(
+        animate(topPx, computeTargetTop(), {
+          type: "spring",
+          stiffness: 44,
+          damping: 22,
+          mass: 0.9,
+          restDelta: 0.2,
+        })
+      );
+    }
+
+    return () => anims.forEach((a) => a?.stop && a.stop());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdx, vw, vh, isSmall, side, mobileTopVH]);
 
   // Trigger remolino solo en contact
   useEffect(() => {
-    if (currentId === "contact") {
+    if (sections[activeIdx] === "contact") {
       if (!armedRef.current && !spinningRef.current) {
         armedRef.current = true;
         spinningRef.current = true;
-
         (async () => {
           await animate(spinMV, 720, { duration: 0.7, ease: "easeInOut" });
           setUseCelImage(true);
@@ -255,7 +304,7 @@ export default function FloatingRobot({
       armedRef.current = false;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentId]);
+  }, [activeIdx]);
 
   return (
     <motion.div
@@ -300,7 +349,7 @@ export default function FloatingRobot({
             filter:
               "drop-shadow(0 10px 24px rgba(0,0,0,0.40)) drop-shadow(0 0 10px rgba(86,191,255,0.35))",
           }}
-          initial={{ opacity: 1, scale: 1 }}  // aparece ya flotando
+          initial={{ opacity: 1, scale: 1 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ type: "spring", stiffness: 36, damping: 20, mass: 0.9 }}
           className="select-none"

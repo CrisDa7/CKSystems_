@@ -8,23 +8,36 @@ import "./index.css";
 // Pages
 import Home from "./pages/Home.jsx";
 import Services from "./pages/Services.jsx";
-import ProjectsIndex from "./pages/ProjectsIndex.jsx";   // ⬅️ nueva lista
-import ProjectDetail from "./pages/ProjectDetail.jsx";   // ⬅️ nuevo detalle
+import ProjectsIndex from "./pages/ProjectsIndex.jsx";
+import ProjectDetail from "./pages/ProjectDetail.jsx";
 import About from "./pages/About.jsx";
 import Contact from "./pages/Contact.jsx";
+
+// 👇 Agrega el ScrollToTop
+import ScrollToTop from "./router/ScrollToTop.jsx";
+
+// Componente raíz que envuelve App con ScrollToTop
+function Root() {
+  return (
+    <>
+      <ScrollToTop behavior="auto" />
+      <App />
+    </>
+  );
+}
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <App />,
+    element: <Root />, // 👈 antes era <App />
     children: [
       { index: true, element: <Home /> },
       { path: "services", element: <Services /> },
 
       // Proyectos
-      { path: "projects", element: <ProjectsIndex /> },            // todos
-      { path: "projects/cat/:service", element: <ProjectsIndex /> }, // por categoría (automation|webdev|domotics|it)
-      { path: "projects/id/:id", element: <ProjectDetail /> },     // detalle por ID (ck-fitness, etc.)
+      { path: "projects", element: <ProjectsIndex /> },
+      { path: "projects/cat/:service", element: <ProjectsIndex /> },
+      { path: "projects/id/:id", element: <ProjectDetail /> },
 
       { path: "about", element: <About /> },
       { path: "contact", element: <Contact /> },
