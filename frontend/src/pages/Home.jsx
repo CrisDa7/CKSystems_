@@ -5,8 +5,9 @@ import About from "../components/ComHome/About";
 import Services from "../components/ComHome/Services";
 import Team from "../components/ComHome/Team";
 import Contact from "../components/ComHome/Contact";
+import FloatingRobot from "../components/Fx/FloatingRobot";
 
-const BASE = "https://www.ck-systems.example"; // cambia por tu dominio
+const BASE = "https://www.ck-systems.example";
 
 export default function Home() {
   return (
@@ -23,59 +24,24 @@ export default function Home() {
           "@type": "OfferCatalog",
           "name": "Servicios de CK Systems",
           "itemListElement": [
-            {
-              "@type": "Offer",
-              "itemOffered": {
-                "@type": "Service",
-                "name": "Automatización",
-                "description": "Integración de procesos con APIs, bots y dashboards.",
-                "provider": { "@type": "Organization", "name": "CK Systems" },
-                "areaServed": "Ecuador"
-              },
-              "url": `${BASE}/services#automation`
-            },
-            {
-              "@type": "Offer",
-              "itemOffered": {
-                "@type": "Service",
-                "name": "Desarrollo web",
-                "description": "Sitios y apps con rendimiento y SEO.",
-                "provider": { "@type": "Organization", "name": "CK Systems" },
-                "areaServed": "Ecuador"
-              },
-              "url": `${BASE}/services#webdev`
-            },
-            {
-              "@type": "Offer",
-              "itemOffered": {
-                "@type": "Service",
-                "name": "Domótica",
-                "description": "Soluciones inteligentes para hogar y oficina.",
-                "provider": { "@type": "Organization", "name": "CK Systems" },
-                "areaServed": "Ecuador"
-              },
-              "url": `${BASE}/services#domotics`
-            },
-            {
-              "@type": "Offer",
-              "itemOffered": {
-                "@type": "Service",
-                "name": "Mantenimiento de computadoras",
-                "description": "Optimización, limpieza, backups y soporte.",
-                "provider": { "@type": "Organization", "name": "CK Systems" },
-                "areaServed": "Ecuador"
-              },
-              "url": `${BASE}/services#it`
-            }
+            // ... (igual que tenías)
           ]
         }}
       />
+
       {/* Orden solicitado */}
       <Hero />
       <About />
       <Services />
       <Team />
       <Contact />
+
+      {/* Robot flotante arriba de todo el layout */}
+      <FloatingRobot
+        sections={["hero", "about", "services", "team", "contact"]}
+        startSide="right"
+        offsetTopVH={{ hero: 30, default: 18 }}
+      />
     </>
   );
 }

@@ -15,6 +15,7 @@ export default function Contact() {
   });
   const [sent, setSent] = useState(false);
 
+  // SEO: ContactPage JSON-LD
   useEffect(() => {
     const elId = "contact-jsonld";
     const data = {
@@ -46,11 +47,11 @@ export default function Contact() {
     el.text = JSON.stringify(data);
   }, []);
 
-  const onChange = (e) => setForm(s => ({ ...s, [e.target.name]: e.target.value }));
+  const onChange = (e) => setForm((s) => ({ ...s, [e.target.name]: e.target.value }));
 
   const onSubmit = (e) => {
     e.preventDefault();
-    const to = "593994494004";
+    const to = "593994494004"; // WhatsApp
     const text = [
       "Nuevo contacto desde CK Systems",
       `Ciudad: ${form.ciudad}`,
@@ -74,7 +75,7 @@ export default function Contact() {
         <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,transparent_35%,rgba(0,0,0,0.55)_100%)]" />
       </div>
 
-      {/* Contenido (subido más) */}
+      {/* Contenido */}
       <div className="relative z-10 mx-auto max-w-6xl px-4 pt-4 md:pt-6 pb-6 md:pb-8">
         <p className="text-xs uppercase tracking-widest text-brand-sky">Contacto</p>
         <div className="mt-2 flex items-end gap-4">
@@ -90,55 +91,90 @@ export default function Contact() {
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <div>
-              <label className="block text-sm text-white/70 mb-1">Ciudad</label>
+              <label className="block text-sm text-white/70 mb-1" htmlFor="ciudad">Ciudad</label>
               <input
-                type="text" name="ciudad" value={form.ciudad} onChange={onChange}
+                id="ciudad"
+                type="text"
+                name="ciudad"
+                value={form.ciudad}
+                onChange={onChange}
                 placeholder="Quito, Cuenca…"
+                autoComplete="address-level2"
                 className="w-full rounded-md bg-white/5 border border-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-blue"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm text-white/70 mb-1">Nombre</label>
+              <label className="block text-sm text-white/70 mb-1" htmlFor="nombre">Nombre</label>
               <input
-                type="text" name="nombre" value={form.nombre} onChange={onChange} placeholder="Juan"
+                id="nombre"
+                type="text"
+                name="nombre"
+                value={form.nombre}
+                onChange={onChange}
+                placeholder="Juan"
+                autoComplete="given-name"
                 className="w-full rounded-md bg-white/5 border border-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-blue"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm text-white/70 mb-1">Apellido</label>
+              <label className="block text-sm text-white/70 mb-1" htmlFor="apellido">Apellido</label>
               <input
-                type="text" name="apellido" value={form.apellido} onChange={onChange} placeholder="Pérez"
+                id="apellido"
+                type="text"
+                name="apellido"
+                value={form.apellido}
+                onChange={onChange}
+                placeholder="Pérez"
+                autoComplete="family-name"
                 className="w-full rounded-md bg-white/5 border border-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-blue"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-sm text-white/70 mb-1">Teléfono</label>
+              <label className="block text-sm text-white/70 mb-1" htmlFor="telefono">Teléfono</label>
               <input
-                type="tel" name="telefono" value={form.telefono} onChange={onChange} placeholder="099 123 4567"
+                id="telefono"
+                type="tel"
+                name="telefono"
+                value={form.telefono}
+                onChange={onChange}
+                placeholder="099 123 4567"
+                inputMode="tel"
+                pattern="^[0-9+\s-]{7,}$"
+                autoComplete="tel"
                 className="w-full rounded-md bg-white/5 border border-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-blue"
                 required
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm text-white/70 mb-1">Correo electrónico</label>
+              <label className="block text-sm text-white/70 mb-1" htmlFor="email">Correo electrónico</label>
               <input
-                type="email" name="email" value={form.email} onChange={onChange} placeholder="tu@email.com"
+                id="email"
+                type="email"
+                name="email"
+                value={form.email}
+                onChange={onChange}
+                placeholder="tu@email.com"
+                autoComplete="email"
                 className="w-full rounded-md bg-white/5 border border-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-blue"
                 required
               />
             </div>
 
             <div className="md:col-span-2">
-              <label className="block text-sm text-white/70 mb-1">¿Cómo podemos ayudarte?</label>
+              <label className="block text-sm text-white/70 mb-1" htmlFor="mensaje">¿Cómo podemos ayudarte?</label>
               <textarea
-                name="mensaje" value={form.mensaje} onChange={onChange} rows={5}
+                id="mensaje"
+                name="mensaje"
+                value={form.mensaje}
+                onChange={onChange}
+                rows={5}
                 placeholder="Cuéntanos brevemente tu proyecto o necesidad…"
                 className="w-full rounded-md bg-white/5 border border-white/10 px-3 py-2 text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-brand-blue"
                 required
@@ -159,7 +195,11 @@ export default function Contact() {
           </div>
 
           {sent && (
-            <div className="mt-4 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-emerald-200">
+            <div
+              className="mt-4 rounded-md border border-emerald-400/30 bg-emerald-500/10 px-4 py-3 text-emerald-200"
+              role="status"
+              aria-live="polite"
+            >
               ¡Mensaje enviado con éxito! Te contactaremos pronto.
             </div>
           )}

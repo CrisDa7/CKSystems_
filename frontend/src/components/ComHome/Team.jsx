@@ -165,6 +165,8 @@ export default function Team() {
                     <img
                       src={m.photo}
                       alt={`Foto de ${m.name}`}
+                      width={224}
+                      height={224}
                       className={`relative h-40 w-40 md:h-56 md:w-56 rounded-full object-cover ring-1 transition-all duration-500 ${
                         i === index ? "ring-brand-blue/40 scale-[1.02]" : "ring-white/10 scale-100"
                       }`}
@@ -233,6 +235,7 @@ export default function Team() {
           {TEAM.map((_, i) => (
             <button
               key={i}
+              type="button"
               onClick={() => goTo(i)}
               aria-label={`Ir al slide ${i + 1}`}
               className={`h-1.5 rounded-full transition-all ${i === index ? "w-6 bg-brand-blue" : "w-2 bg-white/30 hover:bg-white/60"}`}

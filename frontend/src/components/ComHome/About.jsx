@@ -88,7 +88,7 @@ export default function About() {
 
   return (
     <section
-      id="about"
+      id="about" // 👈 id para el robot flotante y anclas
       className="relative py-20 bg-brand-navy bg-gradient-to-b from-brand-navy via-brand-navy to-[#0b1424]"
       aria-labelledby="about-title"
     >
@@ -117,7 +117,7 @@ export default function About() {
           </p>
         </article>
 
-        {/* Misión / Visión (iconos limpios, sin contenedor) */}
+        {/* Misión / Visión */}
         <div className="mt-8 grid gap-6 md:grid-cols-2">
           {/* Misión */}
           <article
@@ -126,7 +126,6 @@ export default function About() {
             aria-labelledby="about-mission-title"
           >
             <div className="flex items-start gap-3">
-              {/* Icono línea, sin fondo */}
               <svg
                 viewBox="0 0 24 24"
                 className="w-6 h-6 text-brand-blue mt-1 shrink-0"
@@ -157,7 +156,6 @@ export default function About() {
             aria-labelledby="about-vision-title"
           >
             <div className="flex items-start gap-3">
-              {/* Icono línea, sin fondo */}
               <svg
                 viewBox="0 0 24 24"
                 className="w-6 h-6 text-brand-blue mt-1 shrink-0"

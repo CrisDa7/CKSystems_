@@ -9,6 +9,7 @@ export default function Hero() {
 
   return (
     <section
+      id="hero" // 👈 Aquí agregamos el id
       className="relative w-full h-screen flex items-center justify-center"
       style={{
         backgroundImage: `url(${heroBg})`,
@@ -20,9 +21,13 @@ export default function Hero() {
       <div className="absolute inset-0 bg-black/60" />
 
       <div className="relative text-center text-white px-4">
-        <h1 className="text-4xl md:text-6xl font-extrabold mb-3">
-          Bienvenido a CK Systems
-        </h1>
+        <h1 className="text-4xl md:text-6xl font-extrabold mb-3 relative">
+  Bienvenido a CK{" "}
+  <span id="robot-anchor" className="relative inline-block">
+    Systems
+  </span>
+</h1>
+
         <p className="text-lg md:text-xl mb-8 text-white/85 max-w-2xl mx-auto">
           Empresa dedicada a dar soluciones tecnológicas eficientes.
         </p>
@@ -36,13 +41,12 @@ export default function Hero() {
           >
             Services
           </button>
-
-          {/* Si quieres mantener Contact como link SPA */}
-          {/* <Link to="/contact" className="px-6 py-3 rounded-md border border-white/40 text-white font-medium text-lg hover:bg-white/10 transition no-underline">Contact</Link> */}
         </div>
       </div>
 
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/80">↓</div>
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 text-white/80">
+        ↓
+      </div>
     </section>
   );
 }
