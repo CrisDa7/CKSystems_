@@ -1,5 +1,5 @@
 // src/components/Fx/FloatingRobot.jsx
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   motion,
   useScroll,
@@ -10,23 +10,22 @@ import {
   animate,
 } from "framer-motion";
 import robotSrc from "../../assets/imgHome/robot.png";
+import robotCelSrc from "../../assets/imgHome/robotcel.png";
 
 /**
  * Robot flotante con neón celeste + animación pro.
- * - Inicio anclado atrás de “Systems” (span #robot-anchor).
- * - Alterna lados por sección con spring suave.
- * - Parallax amortiguado, bob continuo y leve rotación por velocidad.
- * - En móvil aparece (no se oculta), tamaño menor y offsets seguros.
+ * Extra: en la sección "contact" hace remolino, cambia a robotcel.png 5s,
+ * vuelve a girar y retorna a robot.png.
  */
 export default function FloatingRobot({
   sections = ["hero", "about", "services", "team", "contact"],
   startSide = "right",
-  offsetTopVH = { hero: 30, default: 18, mobile: 86 }, // en móvil lo dejamos bajo
-  marginPx = 28, // margen lateral en desktop
-  marginPxMobile = 14, // margen lateral en móvil
-  heroOffsetForward = 36, // empuje desde el anchor en desktop
-  heroOffsetForwardMobile = 16, // empuje desde el anchor en móvil
-  widthPx = { base: 220, md: 300, xl: 340, sm: 150 }, // tamaños
+  offsetTopVH = { hero: 30, default: 18, mobile: 86 },
+  marginPx = 28,
+  marginPxMobile = 14,
+  heroOffsetForward = 36,
+  heroOffsetForwardMobile = 16,
+  widthPx = { base: 220, md: 300, xl: 340, sm: 150 },
 }) {
   const [activeIdx, setActiveIdx] = useState(0);
   const [anchorX, setAnchorX] = useState(null);
@@ -42,7 +41,7 @@ export default function FloatingRobot({
       : false
   );
 
-  // ===== Estilos del halo neón (una vez) =====
+  // ===== Estilos de halo neón (una vez) =====
   useEffect(() => {
     const id = "ck-floating-robot-neon-style";
     if (document.getElementById(id)) return;
@@ -56,9 +55,7 @@ export default function FloatingRobot({
       }
     `;
     document.head.appendChild(style);
-    return () => {
-      document.getElementById(id)?.remove();
-    };
+    return () => document.getElementById(id)?.remove();
   }, []);
 
   // ===== Medir anchor del Hero (detrás de "Systems") + responsive =====
@@ -67,7 +64,7 @@ export default function FloatingRobot({
       const el = document.getElementById("robot-anchor");
       if (el) {
         const r = el.getBoundingClientRect();
-        // pega un poquito más al texto: ajusta este -28 si quieres
+        // pegadito al texto; ajusta -28 si quieres más/menos
         setAnchorX(r.left + r.width - 28);
       }
       setVw(window.innerWidth);
@@ -110,7 +107,7 @@ export default function FloatingRobot({
   const robotW =
     vw >= 1280 ? widthPx.xl :
     vw >= 768  ? widthPx.md :
-                 widthPx.sm; // en móvil
+                 widthPx.sm;
 
   // ===== Posiciones target (X y TOP) =====
   const currentId = sections[activeIdx];
@@ -119,21 +116,15 @@ export default function FloatingRobot({
   const computeTargetX = () => {
     const margin = isSmall ? marginPxMobile : marginPx;
     if (currentId === "hero" && anchorX != null) {
-      // usar anchor del héroe: más suave en mobile
       return anchorX + (isSmall ? heroOffsetForwardMobile : heroOffsetForward);
     }
-    // resto de secciones: pegar a un margen lógico
-    if (side === "right") {
-      return vw - margin - robotW;
-    }
+    if (side === "right") return vw - margin - robotW;
     return margin;
   };
 
   const computeTargetTop = () => {
-    // en móvil lo mantenemos bajo para no tapar contenido
     if (isSmall) {
-      const pxFromBottom = (offsetTopVH.mobile / 100) * vh; // móvil usa bottom-like
-      // top = altura total - offset desde abajo - altura aproximada del robot
+      const pxFromBottom = (offsetTopVH.mobile / 100) * vh;
       return Math.max(0, vh - pxFromBottom - robotW * 0.55);
     }
     const vhVal =
@@ -148,7 +139,6 @@ export default function FloatingRobot({
   const topPx = useMotionValue(computeTargetTop());
   const topSmooth = useSpring(topPx, { stiffness: 38, damping: 20, mass: 0.9 });
 
-  // Parallax (más corto en mobile)
   const { scrollY } = useScroll();
   const yRaw = useTransform(
     scrollY,
@@ -157,7 +147,7 @@ export default function FloatingRobot({
   );
   const y = useSpring(yRaw, { stiffness: 30, damping: 18, mass: 0.9 });
 
-  // Rotación sutil según velocidad (menos en móvil)
+  // Rotación sutil por velocidad (tilt)
   const vX = useVelocity(xSmooth);
   const tilt = useTransform(
     vX,
@@ -165,7 +155,14 @@ export default function FloatingRobot({
     isSmall ? [-3.5, 0, 3.5] : [-5.5, 0, 5.5]
   );
 
-  // Re-animar a cada cambio de sección/anchor/viewport
+  // ===== Remolino en "contact" + swap de imagen 5s =====
+  const [useCelImage, setUseCelImage] = useState(false);
+  const spinningRef = useRef(false);      // evita retriggers mientras corre
+  const armedRef = useRef(false);         // se rearma al salir de contact
+  const spinMV = useMotionValue(0);       // rotación extra (remolino)
+  const spinSmooth = useSpring(spinMV, { stiffness: 120, damping: 22, mass: 0.8 });
+
+  // Cuando cambia de sección o viewport, mover a nuevos targets
   useEffect(() => {
     const controls = [
       animate(x, computeTargetX(), {
@@ -188,9 +185,37 @@ export default function FloatingRobot({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdx, anchorX, vw, vh, isSmall]);
 
+  // Disparar remolino SOLO al entrar a "contact"
+  useEffect(() => {
+    if (currentId === "contact") {
+      if (!armedRef.current && !spinningRef.current) {
+        armedRef.current = true;
+        spinningRef.current = true;
+
+        (async () => {
+          // giro de entrada
+          await animate(spinMV, 720, { duration: 0.7, ease: "easeInOut" });
+          setUseCelImage(true); // ¡bum! cambia imagen
+          // mantener 5s en modo celeste  ⬅️ (antes era 2s)
+          await new Promise((res) => setTimeout(res, 5000));
+          // giro de salida
+          await animate(spinMV, 1440, { duration: 0.7, ease: "easeInOut" });
+          setUseCelImage(false);
+          // reset para no acumular grados
+          spinMV.set(0);
+          spinningRef.current = false;
+        })();
+      }
+    } else {
+      // salimos de contact → rearmar
+      armedRef.current = false;
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentId]);
+
   return (
     <motion.div
-      // Bob continuo leve (igual en móvil)
+      // Bob continuo leve
       animate={{ y: [0, -3, 0, 2, 0] }}
       transition={{ duration: 6.5, repeat: Infinity, ease: [0.33, 0.0, 0.33, 1] }}
       style={{
@@ -202,42 +227,44 @@ export default function FloatingRobot({
         willChange: "transform, filter",
       }}
     >
-      {/* Halo de neón celeste (pulsante) */}
-      <motion.span
-        aria-hidden="true"
-        style={{
-          position: "absolute",
-          inset: "-18%",
-          borderRadius: "9999px",
-          background:
-            "radial-gradient(closest-side, rgba(86, 191, 255, 0.35), rgba(86,191,255,0.20) 40%, rgba(86,191,255,0.06) 70%, transparent 80%)",
-          filter:
-            "blur(14px) drop-shadow(0 0 18px rgba(86,191,255,0.35)) drop-shadow(0 0 36px rgba(21,112,239,0.25))",
-          pointerEvents: "none",
-        }}
-        animate={{ opacity: [0.55, 0.85, 0.55], scale: [1, 1.05, 1] }}
-        transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
-      />
+      {/* Capa de remolino (rota todo el conjunto) */}
+      <motion.div style={{ rotate: spinSmooth }}>
+        {/* Halo de neón celeste */}
+        <motion.span
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            inset: "-18%",
+            borderRadius: "9999px",
+            background:
+              "radial-gradient(closest-side, rgba(86,191,255,0.35), rgba(86,191,255,0.20) 40%, rgba(86,191,255,0.06) 70%, transparent 80%)",
+            filter:
+              "blur(14px) drop-shadow(0 0 18px rgba(86,191,255,0.35)) drop-shadow(0 0 36px rgba(21,112,239,0.25))",
+            pointerEvents: "none",
+          }}
+          animate={{ opacity: [0.55, 0.85, 0.55], scale: [1, 1.05, 1] }}
+          transition={{ duration: 3.8, repeat: Infinity, ease: "easeInOut" }}
+        />
 
-      {/* Robot */}
-      <motion.img
-        src={robotSrc}
-        alt="Robot CK flotante"
-        draggable={false}
-        style={{
-          translateY: y, // parallax amortiguado
-          rotate: tilt, // inclinación
-          width: robotW,
-          height: "auto",
-          // Sombra y brillo directo sobre el PNG para remarcar bordes
-          filter:
-            "drop-shadow(0 10px 24px rgba(0,0,0,0.40)) drop-shadow(0 0 10px rgba(86,191,255,0.35))",
-        }}
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ type: "spring", stiffness: 36, damping: 20, mass: 0.9 }}
-        className="select-none"
-      />
+        {/* Robot */}
+        <motion.img
+          src={useCelImage ? robotCelSrc : robotSrc}
+          alt="Robot CK flotante"
+          draggable={false}
+          style={{
+            translateY: y,  // parallax amortiguado
+            rotate: tilt,   // inclinación suave
+            width: robotW,
+            height: "auto",
+            filter:
+              "drop-shadow(0 10px 24px rgba(0,0,0,0.40)) drop-shadow(0 0 10px rgba(86,191,255,0.35))",
+          }}
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 36, damping: 20, mass: 0.9 }}
+          className="select-none"
+        />
+      </motion.div>
     </motion.div>
   );
 }
