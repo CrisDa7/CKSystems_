@@ -1,4 +1,3 @@
-// src/pages/Home.jsx
 import Seo from "../seo/Seo";
 import Hero from "../components/ComHome/Hero";
 import About from "../components/ComHome/About";
@@ -22,25 +21,45 @@ export default function Home() {
         jsonLd={{
           "@context": "https://schema.org",
           "@type": "OfferCatalog",
-          "name": "Servicios de CK Systems",
-          "itemListElement": [
-            // ... (igual que tenías)
-          ]
+          name: "Servicios de CK Systems",
+          itemListElement: [],
         }}
       />
 
-      {/* Orden solicitado */}
-      <Hero />
-      <About />
-      <Services />
-      <Team />
-      <Contact />
+      {/* Secciones con IDs */}
+      <section id="hero">
+        {/* Ancla para el robot (ideal colocarlo dentro del <Hero/> en la palabra “Systems”) */}
+        <span id="robot-anchor" style={{ position: "absolute", inset: 0, width: 0, height: 0 }} />
+        <Hero />
+      </section>
+      <section id="about">
+        <About />
+      </section>
+      <section id="services">
+        <Services />
+      </section>
+      <section id="team">
+        <Team />
+      </section>
+      <section id="contact">
+        <Contact />
+      </section>
 
-      {/* Robot flotante arriba de todo el layout */}
+      {/* Robot */}
       <FloatingRobot
         sections={["hero", "about", "services", "team", "contact"]}
         startSide="right"
-        offsetTopVH={{ hero: 30, default: 18 }}
+        sideOverrides={{
+          hero: "right",
+          about: "left",
+          services: "right",
+          team: "left",
+          contact: "right",
+        }}
+        offsetTopVH={{ hero: 30, default: 18, mobile: 86 }} // desktop
+        mobileTopVH={12}                                   // 👈 móvil: “inicio” de cada sección
+        heroOffsetForward={12}
+        heroOffsetForwardMobile={8}
       />
     </>
   );
