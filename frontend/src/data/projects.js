@@ -31,9 +31,9 @@ export const PROJECTS = [
   {
     id: "web-proyecto-1",
     serviceKey: "webdev",
-    title: "Proyecto de Desarrollo Web — Proyecto 1",
+    title: "Página web de SafeTech-Quito",
     summary:
-      "Sitio moderno con React + Vite. Buen SEO técnico y desempeño (Core Web Vitals).",
+      "Sitio moderno  para presentacion de servicios de la empresa SafeTech ubicada en Quito",
     cover: web1Cover,
     images: [web1Img1, web1Img2, web1Img3, web1Img4, web1Img5], // carrusel del modal
   },
