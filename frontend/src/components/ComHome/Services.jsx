@@ -1,7 +1,8 @@
 // src/components/ComHome/Services.jsx
-// Cards con efecto neón (solo hover) + carrusel móvil (scroll-snap).
-// Fondo con imagen + velo oscuro.
+// Cards con efecto neón: en móvil solo al tocar; en desktop al hover.
+// Carrusel móvil (scroll-snap). Fondo con imagen + velo oscuro.
 
+import { useState } from "react";
 import bgImg from "../../assets/imgHome/heroFondo.png";
 
 const items = [
@@ -53,23 +54,20 @@ function Icon({ name, className = "w-10 h-10" }) {
 }
 
 export default function Services() {
+  // Solo para móvil: card activa por toque
+  const [activeKey, setActiveKey] = useState(null);
+  const toggleActive = (key) => setActiveKey((prev) => (prev === key ? null : key));
+
   return (
-    <section
-      id="services"
-      className="relative py-20 overflow-hidden"
-      aria-labelledby="services-title"
-    >
+    <section id="services" className="relative py-20 overflow-hidden" aria-labelledby="services-title">
       {/* Fondo con imagen + velo oscuro + degradado de marca */}
       <div className="absolute inset-0 -z-10" aria-hidden="true">
-        <div
-          className="h-full w-full bg-center bg-cover scale-105"
-          style={{ backgroundImage: `url(${bgImg})` }}
-        />
+        <div className="h-full w-full bg-center bg-cover scale-105" style={{ backgroundImage: `url(${bgImg})` }} />
         <div className="absolute inset-0 bg-black/55" />
         <div className="absolute inset-0 bg-gradient-to-b from-brand-navy/70 via-brand-navy/65 to-[#0b1424]/80" />
       </div>
 
-      {/* Keyframes + utilidades (sin activación por scroll) */}
+      {/* Utilidades visuales */}
       <style>{`
         @keyframes ck-pulse { 0%{transform:scale(1)} 50%{transform:scale(1.06)} 100%{transform:scale(1)} }
         @keyframes ck-neon-sheen { 0%{background-position:0% 50%} 100%{background-position:100% 50%} }
@@ -86,9 +84,15 @@ export default function Services() {
           opacity:0; transition:opacity .25s ease, filter .25s ease;
           pointer-events:none; filter:blur(.25px);
         }
+        /* Hover (desktop) */
         .ck-neon:hover::after{ opacity:1; animation: ck-neon-sheen 1100ms ease-out forwards; filter:blur(.15px); }
         .ck-neon:hover{ box-shadow:0 0 10px rgba(76,201,255,.45),0 0 22px rgba(46,144,250,.35),0 0 44px rgba(46,144,250,.25); }
 
+        /* Activo por toque (móvil) */
+        .is-active::after{ opacity:1; }
+        .is-active{ box-shadow:0 0 10px rgba(76,201,255,.45),0 0 22px rgba(46,144,250,.35),0 0 44px rgba(46,144,250,.25); }
+
+        /* Carrusel móvil */
         .ck-rail{
           scroll-snap-type:x mandatory;
           scroll-behavior:smooth;
@@ -111,25 +115,25 @@ export default function Services() {
           Soluciones tecnológicas eficientes y escalables, creadas para generar impacto real en tu operación.
         </p>
 
-        {/* MÓVIL: carrusel (sin neón automático por scroll) */}
+        {/* MÓVIL: carrusel (neón solo al tocar) */}
         <div className="mt-8 md:hidden relative">
-          <div
-            className="ck-rail -mx-4 px-4 flex gap-4 overflow-x-auto scroll-px-4"
-            role="region"
-            aria-label="Carrusel de servicios"
-          >
+          <div className="ck-rail -mx-4 px-4 flex gap-4 overflow-x-auto scroll-px-4" role="region" aria-label="Carrusel de servicios">
             {items.map((s, i) => (
               <article
                 key={s.key}
                 data-card
                 data-key={s.key}
+                onTouchStart={() => toggleActive(s.key)}
+                onClick={() => toggleActive(s.key)}
+                role="button"
+                tabIndex={0}
                 className={[
                   "group ck-neon overflow-hidden rounded-2xl",
                   "border border-white/10 bg-white/5 backdrop-blur",
                   "p-6 transition will-change-transform",
-                  "hover:-translate-y-1 hover:shadow-[0_15px_40px_-15px_rgba(21,112,239,0.35)]",
+                  "active:scale-[0.995]",
                   "snap-center shrink-0 w-[85%]",
-                  // 🚫 sin clase 'is-active' aquí
+                  activeKey === s.key ? "is-active" : "",
                 ].join(" ")}
                 style={{ animationDelay: `${i * 120}ms` }}
                 aria-labelledby={`service-title-${s.key}`}
@@ -141,30 +145,23 @@ export default function Services() {
                     bg-gradient-to-br from-brand-blue/35 to-brand-blue/15
                     text-brand-blue ring-1 ring-brand-blue/40
                     animate-[ck-pulse_2.4s_ease-in-out_infinite]
-                    group-hover:animate-[ck-pulse_1.2s_ease-in-out_infinite]
                   "
                   aria-hidden="true"
                 >
                   <Icon name={s.icon} />
-                  <span className="pointer-events-none absolute inset-0 rounded-full shadow-[0_0_24px_0_rgba(46,144,250,0.35)] opacity-0 group-hover:opacity-100 transition" />
+                  <span className="pointer-events-none absolute inset-0 rounded-full shadow-[0_0_24px_0_rgba(46,144,250,0.35)] opacity-0 transition" />
                 </div>
 
                 <h3 id={`service-title-${s.key}`} className="font-semibold">{s.title}</h3>
                 <p className="mt-2 text-sm text-white/80">{s.desc}</p>
 
                 <div className="mt-4">
-                  <a
-                    href={`/services#${s.key}`}
-                    className="text-sm text-brand-sky hover:text-white underline-offset-4 hover:underline"
-                  >
+                  <a href={`/services#${s.key}`} className="text-sm text-brand-sky hover:text-white underline-offset-4 hover:underline">
                     Más info →
                   </a>
                 </div>
 
-                <span
-                  className="absolute bottom-0 left-0 h-0.5 w-0 bg-brand-blue transition-all duration-300 group-hover:w-full"
-                  aria-hidden="true"
-                />
+                <span className="absolute bottom-0 left-0 h-0.5 w-0 bg-brand-blue transition-all duration-300 group-[.is-active]:w-full" aria-hidden="true" />
               </article>
             ))}
           </div>
@@ -203,18 +200,12 @@ export default function Services() {
               <p className="mt-2 text-sm text-white/80">{s.desc}</p>
 
               <div className="mt-4">
-                <a
-                  href={`/services#${s.key}`}
-                  className="text-sm text-brand-sky hover:text-white underline-offset-4 hover:underline"
-                >
+                <a href={`/services#${s.key}`} className="text-sm text-brand-sky hover:text-white underline-offset-4 hover:underline">
                   Más info →
                 </a>
               </div>
 
-              <span
-                className="absolute bottom-0 left-0 h-0.5 w-0 bg-brand-blue transition-all duration-300 group-hover:w-full"
-                aria-hidden="true"
-              />
+              <span className="absolute bottom-0 left-0 h-0.5 w-0 bg-brand-blue transition-all duration-300 group-hover:w-full" aria-hidden="true" />
             </article>
           ))}
         </div>
