@@ -1,15 +1,13 @@
 // src/components/ComHome/Services.jsx
-// Cards con efecto neón + carrusel móvil (scroll-snap) que activa el neón según visibilidad.
+// Cards con efecto neón (solo hover) + carrusel móvil (scroll-snap).
 // Fondo con imagen + velo oscuro.
 
-import { useEffect, useRef, useState } from "react";
 import bgImg from "../../assets/imgHome/heroFondo.png";
 
 const items = [
   { key: "automation", title: "Automatización", desc: "Integramos procesos con APIs, bots y dashboards para acelerar tu operación.", icon: "automation" },
   { key: "webdev",     title: "Desarrollo web", desc: "Sitios y apps con rendimiento, SEO y una experiencia impecable.",               icon: "web" },
   { key: "domotics",   title: "Domótica",       desc: "Control inteligente para hogares y oficinas: confort, seguridad y ahorro.",    icon: "home" },
-  // 👇 cambio solicitado
   { key: "it",         title: "Mantenimiento en hardware y software", desc: "Optimización, limpieza, backups y soporte para mantener todo al día.", icon: "wrench" },
 ];
 
@@ -55,28 +53,6 @@ function Icon({ name, className = "w-10 h-10" }) {
 }
 
 export default function Services() {
-  const railRef = useRef(null);
-  const [activeKey, setActiveKey] = useState(items[0].key);
-
-  // Observa qué card está centrada/visible para activar el neón automáticamente
-  useEffect(() => {
-    const rail = railRef.current;
-    if (!rail) return;
-
-    const opts = { root: rail, threshold: 0.6 }; // 60% visible
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach((e) => {
-        if (e.isIntersecting) {
-          const k = e.target.getAttribute("data-key");
-          if (k) setActiveKey(k);
-        }
-      });
-    }, opts);
-
-    rail.querySelectorAll("[data-card]").forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, []);
-
   return (
     <section
       id="services"
@@ -93,7 +69,7 @@ export default function Services() {
         <div className="absolute inset-0 bg-gradient-to-b from-brand-navy/70 via-brand-navy/65 to-[#0b1424]/80" />
       </div>
 
-      {/* Keyframes + utilidades carrusel + estados activos */}
+      {/* Keyframes + utilidades (sin activación por scroll) */}
       <style>{`
         @keyframes ck-pulse { 0%{transform:scale(1)} 50%{transform:scale(1.06)} 100%{transform:scale(1)} }
         @keyframes ck-neon-sheen { 0%{background-position:0% 50%} 100%{background-position:100% 50%} }
@@ -112,9 +88,6 @@ export default function Services() {
         }
         .ck-neon:hover::after{ opacity:1; animation: ck-neon-sheen 1100ms ease-out forwards; filter:blur(.15px); }
         .ck-neon:hover{ box-shadow:0 0 10px rgba(76,201,255,.45),0 0 22px rgba(46,144,250,.35),0 0 44px rgba(46,144,250,.25); }
-
-        .is-active::after{ opacity:1; }
-        .is-active{ box-shadow:0 0 10px rgba(76,201,255,.45),0 0 22px rgba(46,144,250,.35),0 0 44px rgba(46,144,250,.25); }
 
         .ck-rail{
           scroll-snap-type:x mandatory;
@@ -138,10 +111,9 @@ export default function Services() {
           Soluciones tecnológicas eficientes y escalables, creadas para generar impacto real en tu operación.
         </p>
 
-        {/* MÓVIL: carrusel */}
+        {/* MÓVIL: carrusel (sin neón automático por scroll) */}
         <div className="mt-8 md:hidden relative">
           <div
-            ref={railRef}
             className="ck-rail -mx-4 px-4 flex gap-4 overflow-x-auto scroll-px-4"
             role="region"
             aria-label="Carrusel de servicios"
@@ -157,7 +129,7 @@ export default function Services() {
                   "p-6 transition will-change-transform",
                   "hover:-translate-y-1 hover:shadow-[0_15px_40px_-15px_rgba(21,112,239,0.35)]",
                   "snap-center shrink-0 w-[85%]",
-                  activeKey === s.key ? "is-active" : "",
+                  // 🚫 sin clase 'is-active' aquí
                 ].join(" ")}
                 style={{ animationDelay: `${i * 120}ms` }}
                 aria-labelledby={`service-title-${s.key}`}
@@ -198,7 +170,7 @@ export default function Services() {
           </div>
         </div>
 
-        {/* TABLET/DESKTOP: grilla */}
+        {/* TABLET/DESKTOP: grilla (hover-only) */}
         <div className="mt-10 hidden md:grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {items.map((s, i) => (
             <article
