@@ -1,0 +1,43 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Estilos globales */
+html, body, #root { height: 100%; }
+body { @apply bg-brand-navy text-brand-text antialiased; }
+
+/* === Animaciones personalizadas === */
+@layer utilities {
+  /* Flotación suave (cíclica) */
+  @keyframes float {
+    0% { transform: translateY(0) }
+    50% { transform: translateY(-6px) }
+    100% { transform: translateY(0) }
+  }
+  .animate-float-slow { animation: float 4s ease-in-out infinite; }
+
+  /* Wiggle suave para íconos al hacer hover */
+  @keyframes wiggle {
+    0%,100% { transform: rotate(0deg) }
+    50%     { transform: rotate(4deg) }
+  }
+  .animate-wiggle { animation: wiggle 1.2s ease-in-out infinite; }
+
+  /* Ring pulsante (aura alrededor del icono) */
+  @keyframes pulse-ring {
+    0% { box-shadow: 0 0 0 0 rgba(46,144,250,.35) }
+    70%{ box-shadow: 0 0 0 10px rgba(46,144,250,0) }
+    100%{ box-shadow: 0 0 0 0 rgba(46,144,250,0) }
+  }
+  .animate-pulse-ring { animation: pulse-ring 1.6s ease-out infinite; }
+}
+/* Visibilidad solo para lectores de pantalla, pero visible al enfocar (skip link) */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+.sr-only.focusable:focus {
+  position: fixed; left: 1rem; top: 1rem; width: auto; height: auto;
+  padding: .5rem .75rem; background: #0B1220; color: #fff; border-radius: .5rem;
+  clip: auto; z-index: 9999;
+}
