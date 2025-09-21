@@ -1,30 +1,44 @@
 // src/components/Footer.jsx
 import logo from "../assets/logo.png";
+import busVideo from "../assets/bus.mp4";
 
 export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="relative border-t border-white/10 bg-[#0b1424]">
+    <footer className="relative border-t border-white/10 bg-[#0b1424] overflow-hidden">
+      {/* Video de fondo */}
+      <video
+        src={busVideo}
+        autoPlay
+        muted
+        loop
+        playsInline
+        className="absolute inset-0 w-full h-full object-cover opacity-30 pointer-events-none"
+      />
+
+      {/* Overlay oscuro para mejorar contraste */}
+      <div className="absolute inset-0 bg-[#0b1424]/80" />
+
       {/* línea sutil arriba */}
       <div
-        className="pointer-events-none absolute inset-x-0 -top-px h-px"
+        className="pointer-events-none absolute inset-x-0 -top-px h-px z-10"
         style={{ background: "linear-gradient(90deg,transparent,rgba(21,112,239,.35),transparent)" }}
       />
 
-      <div className="mx-auto max-w-6xl px-4 py-12 grid grid-cols-1 md:grid-cols-3 gap-10 text-sm">
+      {/* Contenido principal del footer */}
+      <div className="relative z-10 mx-auto max-w-6xl px-4 py-20 grid grid-cols-1 md:grid-cols-3 gap-10 text-sm">
         {/* Marca */}
         <div className="flex flex-col items-start">
           <img
             src={logo}
             alt="CK Systems"
-            className="h-28 md:h-32 w-auto object-contain -mt-8"  // más grande y un poco más arriba
+            className="h-32 md:h-40 w-auto object-contain -mt-8"
             loading="lazy"
           />
           <p className="mt-3 text-white/70 text-left">
             Soluciones tecnológicas: desarrollo web, automatización, domótica y soporte.
           </p>
-          {/* Copyright se movió a la franja inferior */}
         </div>
 
         {/* Servicios */}
@@ -55,7 +69,7 @@ export default function Footer() {
             </li>
           </ul>
 
-          {/* Redes (sin cambios) */}
+          {/* Redes */}
           <div className="mt-4 flex items-center gap-4">
             <a
               href="https://www.facebook.com/CKSystems"
@@ -83,7 +97,7 @@ export default function Footer() {
             </a>
           </div>
 
-          {/* Privacidad/Términos debajo de Instagram */}
+          {/* Privacidad/Términos */}
           <div className="mt-3 text-xs text-white/60">
             <a href="/privacy" className="hover:text-white hover:underline underline-offset-4">Política de privacidad</a>
             <span className="mx-2">·</span>
@@ -92,8 +106,8 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Franja legal inferior: sólo copyright */}
-      <div className="border-t border-white/10 py-4">
+      {/* Franja inferior */}
+      <div className="relative z-10 border-t border-white/10 py-6">
         <div className="mx-auto max-w-6xl px-4 text-center text-xs text-white/60">
           © {year} CK Systems. Todos los derechos reservados.
         </div>

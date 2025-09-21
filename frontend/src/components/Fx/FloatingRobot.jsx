@@ -16,7 +16,8 @@ import robotCelSrc from "../../assets/imgHome/robotcel.png";
  * - Lado fijo por sección con sideOverrides.
  * - Activa sección por "centro de pantalla".
  * - En móvil: inicia centrado sobre el título del hero, luego se ubica al inicio de cada sección.
- * - En "contact" hace remolino y cambia 5s a robotcel.png.
+ * - En "contact": cambia a robotcel.png, hace giro de entrada y luego balanceo horizontal (cada 2s).
+ *   Al salir de "contact": giro de salida y vuelve a la imagen original.
  */
 export default function FloatingRobot({
   sections = ["hero", "about", "services", "team", "contact"],
@@ -89,7 +90,7 @@ export default function FloatingRobot({
     if (!hero) return null;
     const el =
       document.getElementById("robot-anchor") ||
-      hero.querySelector("[data-robot-anchor]") ||
+      hero.querySelector("[data-robot-anchor]" ) ||
       hero.querySelector("h1");
     return el ? el.getBoundingClientRect() : null;
   };
@@ -157,8 +158,7 @@ export default function FloatingRobot({
     if (!isSmall && currentId === "hero") {
       const r = getHeroAnchorRect();
       if (r) {
-        const forward = heroOffsetForward;
-        const xHero = r.left + r.width + forward;
+        const xHero = r.left + r.width + heroOffsetForward;
         const minX = margin;
         const maxX = vw - margin - robotW;
         return Math.min(Math.max(minX, xHero), maxX);
@@ -214,7 +214,6 @@ export default function FloatingRobot({
       // Colocar por ENCIMA del título del hero en móvil
       const r = getHeroAnchorRect();
       if (r) {
-        // un poco arriba del texto; ajusta el factor si quieres
         return Math.max(8, r.top - robotW * 0.7);
       }
       return (mobileTopVH / 100) * vh;
@@ -237,16 +236,23 @@ export default function FloatingRobot({
   );
   const y = useSpring(yRaw, { stiffness: 30, damping: 18, mass: 0.9 });
 
-  // Tilt por velocidad
+  // Tilt por velocidad (ligero)
   const vX = useVelocity(xSmooth);
   const tilt = useTransform(vX, [-1200, 0, 1200], isSmall ? [-2.5, 0, 2.5] : [-5, 0, 5]);
 
-  // ===== Remolino en "contact" + swap de imagen 5s =====
+  // ===== Remolino puntual (entrada/salida de contact) =====
   const [useCelImage, setUseCelImage] = useState(false);
-  const spinningRef = useRef(false);
-  const armedRef = useRef(false);
+  const spinningRef = useRef(false); // evita animaciones concurrentes
   const spinMV = useMotionValue(0);
   const spinSmooth = useSpring(spinMV, { stiffness: 120, damping: 22, mass: 0.8 });
+
+  // ===== Wobble (balanceo lateral continuo en contact) =====
+  const wobbleMV = useMotionValue(0);
+  const wobbleSmooth = useSpring(wobbleMV, { stiffness: 120, damping: 18, mass: 0.8 });
+  const wobbleAnimRef = useRef(null);
+
+  // Rotación final combinada: tilt por velocidad + wobble cuando esté en contact
+  const rotateCombined = useTransform([tilt, wobbleSmooth], ([t, w]) => t + w);
 
   // Evitar que al primer render se mueva de la posición inicial móvil del hero
   const firstRunRef = useRef(true);
@@ -255,7 +261,6 @@ export default function FloatingRobot({
   useEffect(() => {
     const anims = [];
 
-    // En el PRIMER render, dejamos la posición inicial (móvil/hero) sin animar
     if (firstRunRef.current) {
       firstRunRef.current = false;
     } else {
@@ -284,27 +289,69 @@ export default function FloatingRobot({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeIdx, vw, vh, isSmall, side, mobileTopVH]);
 
-  // Trigger remolino solo en contact
+  // Entrada/salida de "contact": giro + swap persistente + wobble on/off
   useEffect(() => {
-    if (sections[activeIdx] === "contact") {
-      if (!armedRef.current && !spinningRef.current) {
-        armedRef.current = true;
-        spinningRef.current = true;
-        (async () => {
+    const isInContact = sections[activeIdx] === "contact";
+
+    // Si vamos a activar wobble: crear animación infinita
+    const startWobble = () => {
+      wobbleAnimRef.current?.stop?.();
+      // balanceo horizontal suave: -6° -> 6° -> -6° en 2s
+      wobbleAnimRef.current = animate(wobbleMV, [-6, 6, -6], {
+        duration: 2,
+        repeat: Infinity,
+        ease: "easeInOut",
+      });
+    };
+
+    const stopWobble = async () => {
+      wobbleAnimRef.current?.stop?.();
+      await animate(wobbleMV, 0, { duration: 0.25, ease: "easeOut" });
+    };
+
+    if (spinningRef.current) return;
+
+    (async () => {
+      try {
+        if (isInContact && !useCelImage) {
+          // Entrando a contact: giro de entrada + swap + comenzar wobble
+          spinningRef.current = true;
           await animate(spinMV, 720, { duration: 0.7, ease: "easeInOut" });
           setUseCelImage(true);
-          await new Promise((res) => setTimeout(res, 5000));
+          spinMV.set(0);
+          spinningRef.current = false;
+          startWobble();
+        } else if (!isInContact && useCelImage) {
+          // Saliendo de contact: parar wobble + giro de salida + volver a imagen normal
+          await stopWobble();
+          spinningRef.current = true;
           await animate(spinMV, 1440, { duration: 0.7, ease: "easeInOut" });
           setUseCelImage(false);
           spinMV.set(0);
           spinningRef.current = false;
-        })();
+        } else if (isInContact && useCelImage) {
+          // Ya en contact y con imagen cel: asegurar wobble activo (por si se perdió)
+          if (!wobbleAnimRef.current) startWobble();
+        } else {
+          // Fuera de contact: asegurar wobble apagado
+          if (wobbleAnimRef.current) {
+            await stopWobble();
+          }
+        }
+      } catch {
+        spinningRef.current = false;
       }
-    } else {
-      armedRef.current = false;
-    }
+    })();
+
+    return () => {
+      // limpieza si desmonta o cambia rápido
+      if (!isInContact && wobbleAnimRef.current) {
+        wobbleAnimRef.current.stop?.();
+        wobbleAnimRef.current = null;
+      }
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeIdx]);
+  }, [activeIdx, sections, useCelImage]);
 
   return (
     <motion.div
@@ -319,6 +366,7 @@ export default function FloatingRobot({
         willChange: "transform, filter",
       }}
     >
+      {/* spinSmooth solo se usa para los giros de entrada/salida */}
       <motion.div style={{ rotate: spinSmooth }}>
         {/* Halo */}
         <motion.span
@@ -343,7 +391,7 @@ export default function FloatingRobot({
           draggable={false}
           style={{
             translateY: y,
-            rotate: tilt,
+            rotate: rotateCombined, // tilt + wobble (si está en contact)
             width: robotW,
             height: "auto",
             filter:
